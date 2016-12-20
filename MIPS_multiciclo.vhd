@@ -108,7 +108,7 @@ architecture archMIPS_multiciclo of MIPS_multiciclo is
 	constant CICLO : time := 100 ps;
 	
 begin
-	process (Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,EscreveReg,RegDst,MemparaReg,EscrevePC,EscrevePCCond,IouD,EscreveMem,EscreveRI)
+	process (Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,EscreveReg,RegDst,MemparaReg,EscrevePC,EscrevePCCond,IouD,EscreveMem,EscreveRI,state)
 	begin
 	-- Seleciona o endereco de leitura da memoria
 		if (IouD = '0') then
@@ -151,12 +151,11 @@ begin
 			end if;
 		end if;
 	end process;
-	process(escreveRI, clk, saidaRAM,EscrevePC,EscrevePCCond)
+	process(escreveRI,clk,saidaRAM,EscrevePC,EscrevePCCond)
 	begin
 		if (falling_edge(clk)) then
 			if (EscreveRI = '1') then
 				instrucao <= saidaRAM;
-				sRDM <= saidaRAM;
 			end if;
 			cntrPC <= ((zero and EscrevePCCond) or (EscrevePC));
 			if (cntrPC = '1') then
@@ -164,6 +163,8 @@ begin
 					outPC1 <= inPC1;
 				end if;
 			end if;
+		else
+				sRDM <= saidaRAM;
 		end if;
 	end process;
 	saidaRI <= instrucao;

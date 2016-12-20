@@ -24,7 +24,7 @@ end cntrMIPS;
 
 architecture arch_cntrMIPS of cntrMIPS is
 	
-	type estado is (Fetch0,Fetch1,Decode,ExecR,ExecAddi0,ExecAddi1,fimR,ExecOri0,ExecOri1,fimOri,fimAddi);
+	type estado is (Fetch0,Fetch1,Decode,ExecR,ExecAddi0,ExecAddi1,fimR,ExecOri0,ExecOri1,fimOri,fimAddi,ExecLw0,ExecLw1,ExecSw0,ExecSw1,fimLw0,fimLw1,fimLw3,fimSw);
 	signal EP : estado;		-- estado presente
 	signal PE : estado;		-- proximo estado
 	signal contador : std_logic_vector(3 downto 0) := "0000";
@@ -91,6 +91,8 @@ begin
 					PE <= ExecAddi0;
 				elsif (Op = "001101") then 	-- ori
 					PE <= ExecOri0;
+				elsif (Op = "100011") then		-- lw
+					PE <= ExecLw0;
 				end if;
 			when ExecR => 	 						-- Execução da instrucao tipo R
 				OpALU 			<= "10";
@@ -211,6 +213,82 @@ begin
 				EscreveMem 		<= '0';
 				EscreveIR 		<= '0';
 				state	 <= "01000";
+				PE <= Fetch0;
+			when ExecLw0 =>						-- execução da instrução load word 
+				OpALU 			<= "00";
+				OrigBALU 		<= "10";
+				OrigPC 			<= "11";
+				OrigAALU 		<= '1';
+				EscreveReg 		<= '0';
+				RegDst 			<= '0';
+				MemparaReg 		<= "11";
+				EscrevePC 		<= '0';
+				EscrevePCCond	<= '0';
+				IouD 				<= '1';
+				EscreveMem 		<= '0';
+				EscreveIR 		<= '0';
+				state	 <= "01001";
+				PE <= ExecLw1;
+			when ExecLw1 =>						-- execução da instrução load word 
+				OpALU 			<= "00";
+				OrigBALU 		<= "10";
+				OrigPC 			<= "11";
+				OrigAALU 		<= '1';
+				EscreveReg 		<= '0';
+				RegDst 			<= '0';
+				MemparaReg 		<= "11";
+				EscrevePC 		<= '0';
+				EscrevePCCond	<= '0';
+				IouD 				<= '1';
+				EscreveMem 		<= '0';
+				EscreveIR 		<= '0';
+				state	 <= "01010";
+				PE <= fimLw0;
+			when fimLw0 =>						-- fim da execução da instrução load word 
+				OpALU 			<= "00";
+				OrigBALU 		<= "01";
+				OrigPC 			<= "00";
+				OrigAALU 		<= '0'; 
+				EscreveReg 		<= '0';
+				RegDst 			<= '0'; 
+				MemparaReg 		<= "11";
+				EscrevePC 		<= '1'; 
+				EscrevePCCond 	<= '0';
+				IouD 				<= '0'; 
+				EscreveMem 		<= '0';
+				EscreveIR 		<= '0';
+				state	 <= "01011";
+				PE <= fimLw1;
+			when fimLw1 =>						-- fim da execução da instrução load word 
+				OpALU 			<= "00";
+				OrigBALU 		<= "01";
+				OrigPC 			<= "00";
+				OrigAALU 		<= '0'; 
+				EscreveReg 		<= '0';
+				RegDst 			<= '0'; 
+				MemparaReg 		<= "11";
+				EscrevePC 		<= '1'; 
+				EscrevePCCond 	<= '0';
+				IouD 				<= '0'; 
+				EscreveMem 		<= '0';
+				EscreveIR 		<= '0';
+				EscreveIR 		<= '0';
+				state	 <= "01100";
+				PE <= fimLw3;
+			when fimLw3 =>						-- fim da execução da instrução load word 
+				OpALU 			<= "00";
+				OrigBALU 		<= "10";
+				OrigPC 			<= "11";
+				OrigAALU 		<= '1';
+				EscreveReg 		<= '1';
+				RegDst 			<= '0';
+				MemparaReg 		<= "01";
+				EscrevePC 		<= '0';
+				EscrevePCCond	<= '0';
+				IouD 				<= '0';
+				EscreveMem 		<= '0';
+				EscreveIR 		<= '0';
+				state	 <= "01101";
 				PE <= Fetch0;
 			when others =>
 				PE 				<= Fetch0;
