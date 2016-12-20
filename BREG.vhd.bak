@@ -1,0 +1,42 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+entity BREG is
+	generic (WSIZE : natural := 32);
+	port (
+			clk			: in std_logic;
+			botao 		: in 	std_logic;
+			EscreveReg	: in std_logic;
+			radd1 		: in std_logic_vector(4 downto 0);
+			radd2 		: in std_logic_vector(4 downto 0);
+			wadd			: in std_logic_vector(4 downto 0);
+			wdata			: in std_logic_vector(WSIZE - 1 downto 0);
+			r1				: out std_logic_vector(WSIZE - 1 downto 0);
+			r2				: out std_logic_vector(WSIZE - 1 downto 0));
+end BREG;
+
+architecture arch_BREG of BREG is
+	-- Novo tipo de dados, que representa o banco de registradores:
+	type register_file is array (0 to 31) of std_logic_vector(WSIZE - 1 downto 0);
+	signal reg32bits : register_file := (others => X"00000000"); -- sinal do tipo banco de registradores
+	signal index, index1, index2: integer range 0 to 31; -- indices do banco de registradores
+begin
+		BancoDeRegistradores: process (clk,EscreveReg)
+		begin
+			if (rising_edge(clk)) then 
+				if (EscreveReg = '1') then
+					index <= to_integer(unsigned(wadd));
+					reg32bits(index) <= wdata;
+					index1 <= to_integer(unsigned(radd1));
+					r1 <= reg32bits(index1);
+					index2 <= to_integer(unsigned(radd2));
+					r2 <= reg32bits(index2);
+				end if;
+				index1 <= to_integer(unsigned(radd1));
+				r1 <= reg32bits(index1);
+				index2 <= to_integer(unsigned(radd2));
+				r2 <= reg32bits(index2);
+         end if;
+		end process;
+end arch_BREG;
