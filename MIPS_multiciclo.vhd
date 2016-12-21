@@ -99,13 +99,13 @@ architecture archMIPS_multiciclo of MIPS_multiciclo is
  	signal wdata, r1, r2 : std_logic_vector(31 downto 0):= X"00000000";
  	signal wadd : std_logic_vector(4 downto 0);
  	-- sinais usados no deslocamento do immediato:
- 	signal sinal32bits,out32bits, saidaRAM, sRDM : std_logic_vector(31 downto 0);
+ 	signal sinal32bits,out32bits,aux2,saidaRAM, sRDM : std_logic_vector(31 downto 0);
  	-- Sinal que armazena o endereco do jump
  	signal addressJump, out2 : std_logic_vector(31 downto 0);
 	signal out28bits : std_logic_vector(27 downto 0);
 	-- Sinal de endereco da memoria
 	signal address, addressReturn, addressJal : std_logic_vector(7 downto 0) := "00000000";
-	constant CICLO : time := 100 ps;
+	signal b32 : bit_vector(31 downto 0);
 	
 begin
 	process (Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,EscreveReg,RegDst,MemparaReg,EscrevePC,EscrevePCCond,IouD,EscreveMem,EscreveRI,state)
@@ -120,6 +120,8 @@ begin
 		if (IouD = '0') then
 			if (Opcode = "101011" and state = "00000") then
 				address <= OutPC1(7 downto 0);
+			elsif (Opcode = "000100" and zero = '1') then			-- beq
+				address <= out32bits(7 downto 0);
 			else
 				address <= out2(7 downto 0);
 			end if;
@@ -164,6 +166,8 @@ begin
 			cntrPC <= ((zero and EscrevePCCond) or (EscrevePC));
 			if (cntrPC = '1') then
 				if (state = "00000") then
+					outPC1 <= inPC1;
+				elsif (state = "10001") then
 					outPC1 <= inPC1;
 				end if;
 			end if;
@@ -239,10 +243,20 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 			end if;
 		end if;
 	end process;
+	process(sinal32bits,clk) begin
+		if (sinal32bits(31) = '1') then 		-- se o salto for para frente
+			aux2 <= not(sinal32bits);
+			b32 <= to_bitvector(aux2);
+			out32bits  <= to_stdlogicvector(b32 sll 1);
+		else					-- se o salto for para tras
+			b32 <= to_bitvector(sinal32bits);
+			out32bits  <= to_stdlogicvector(b32 sll 1);
+		end if;
+	end process;	
 	-- Acesso ao banco de registradores:
  	acessa: BREG port map (clk,EscreveReg,rs,rt,wadd,wdata,r1,r2);
 	-- Escolhendo 0 operando 1:
-	process(OrigAALU,funct,opA) begin
+	process(OrigAALU,funct,opA,clk) begin
 		if (OrigAALU = '0') then
 			operando1 <= outPC1;
 		else
@@ -250,7 +264,7 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 		end if;
 	end process;
 	-- Escolhendo o operando 2:
-	process(OrigBALU,clk) begin
+	process(OrigBALU,clk,funct) begin
 		if (OrigBALU = "00") then
 			if(funct = "000000")then 			-- operando 2 para o caso da operacao sll
 				operando2(4 downto 0) <= shamt;
@@ -284,10 +298,14 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 	end process;
 	saidaALU <= sALU;
 	-- Esse mux vai decidir qual vai ser o endereco da proxima instrucao:
-	process (OrigPC,Z,sALU,addressJump)
+	process (OrigPC,Z,sALU,sinal32bits,Opcode,clk)
 	begin
 		if (OrigPC = "00") then
+		 if(Opcode = "000100") then	-- beq
+			inPC1 <= out32bits;
+		 else
 			inPC1 <= Z;
+		 end if;
 		elsif (OrigPC = "01") then
 			inPC1 <= sALU;
 		elsif(OrigPC = "10") then
