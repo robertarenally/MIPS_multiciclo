@@ -118,7 +118,11 @@ begin
 		end if;
 	-- Configura o endereco de acesso a memoria RAM
 		if (IouD = '0') then
-			address <= out2(7 downto 0);
+			if (Opcode = "101011" and state = "00000") then
+				address <= OutPC1(7 downto 0);
+			else
+				address <= out2(7 downto 0);
+			end if;
  		elsif (IouD = '1') then
 			address <= ('1' & sALU(8 downto 2));
  		end if;
@@ -290,5 +294,5 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 			inPC1 <= addressJump;
 		end if;
 	end process;
-	memoria: RAM port map (address,clk,wdata,EscreveMem,saidaRAM);
+	memoria: RAM port map (address,clk,r2,EscreveMem,saidaRAM);
 end archMIPS_multiciclo;
