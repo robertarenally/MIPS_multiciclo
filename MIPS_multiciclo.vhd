@@ -122,6 +122,8 @@ begin
 				address <= OutPC1(7 downto 0);
 			elsif (Opcode = "000100" and zero = '1') then			-- beq
 				address <= out32bits(7 downto 0);
+			elsif (Opcode = "000101" and zero = '0') then			-- bne
+				address <= out32bits(7 downto 0);
 			else
 				address <= out2(7 downto 0);
 			end if;
@@ -301,7 +303,7 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 	process (OrigPC,Z,sALU,sinal32bits,Opcode,clk)
 	begin
 		if (OrigPC = "00") then
-		 if(Opcode = "000100") then	-- beq
+		 if(Opcode = "000100" or Opcode = "000101") then	-- beq ou bne
 			inPC1 <= out32bits;
 		 else
 			inPC1 <= Z;

@@ -95,7 +95,7 @@ begin
 					PE <= ExecLw0;
 				elsif (Op = "101011") then 	-- sw
 					PE <= ExecSw0;
-				elsif (Op = "000100") then    -- beq
+				elsif (Op = "000100" or Op = "000101") then    -- beq ou bne
 					Pe <= ExecBeq0;
 				end if;
 			when ExecR => 	 						-- Execução da instrucao tipo R
