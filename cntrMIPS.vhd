@@ -204,7 +204,7 @@ begin
 				EscreveMem 		<= '0';
 				EscreveIR 		<= '0';
 				state <= "00111";
-				PE 				<=	FimOri;
+				PE 				<=	Fetch0;
 			when fimOri =>								-- conclusao da instrucao ori
 				OpALU 			<= "11";
 				OrigBALU 		<= "11";

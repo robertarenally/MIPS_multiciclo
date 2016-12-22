@@ -99,7 +99,7 @@ architecture archMIPS_multiciclo of MIPS_multiciclo is
  	signal wdata, r1, r2 : std_logic_vector(31 downto 0):= X"00000000";
  	signal wadd : std_logic_vector(4 downto 0);
  	-- sinais usados no deslocamento do immediato:
- 	signal sinal32bits,out32bits,aux2,saidaRAM, sRDM : std_logic_vector(31 downto 0);
+ 	signal sinal32bits,out32bits,aux2,aux3,saidaRAM, sRDM : std_logic_vector(31 downto 0);
  	-- Sinal que armazena o endereco do jump
  	signal addressJump, out2 : std_logic_vector(31 downto 0);
 	signal out28bits : std_logic_vector(27 downto 0);
@@ -120,7 +120,7 @@ begin
 		if (IouD = '0') then
 			if (Opcode = "101011" and state = "00000") then
 				address <= OutPC1(7 downto 0);
-			elsif (Opcode = "000100" and zero = '1') then			-- beq
+			elsif (Opcode = "000100" and state = "10001") then			-- beq
 				address <= out32bits(7 downto 0);
 			elsif (Opcode = "000101" and zero = '0') then			-- bne
 				address <= out32bits(7 downto 0);
@@ -183,6 +183,8 @@ begin
 			elsif (funct = "001000") then
 				outPC1(7 downto 0) <= addressReturn;
 				outPC1(31 downto 8) <= "000000000000000000000000";
+			elsif (state = "10001" and Opcode = "000100") then
+				outPC1 <= inPC1;
 			end if;
 		else
 				sRDM <= saidaRAM;
@@ -238,15 +240,17 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 	process (MemparaReg,sALU,sRDM)
 	begin
 		if (MemparaReg = "00") then
-			if (Opcode = "000011" and state = "11000") then 			-- para o caso de jal
-				wdata <= outPC1;
-				addressReturn <= outPC1(7 downto 0);
-			else
-				wdata <= sALU;
-			end if;
+			wdata <= sALU;
 		elsif (MemparaReg = "01") then
 			wdata <= sRDM;
 		end if;
+	end process;
+	process(Opcode,clk) begin
+	if (Opcode = "000011") then 			-- para o caso de jal
+			if (state = "00001") then
+				addressReturn <= inPC1(7 downto 0);
+			end if;
+	end if;
 	end process;
 	-- Acesso ao banco de registradores:
  	acessaBREG: BREG port map (clk,EscreveReg,rs,rt,wadd,wdata,r1,r2);
@@ -269,13 +273,23 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 		end if;
 	end process;
 	process(sinal32bits,clk) begin
-		if (sinal32bits(31) = '1') then 		-- se o salto for para frente
+		if (sinal32bits(0) = '1') then		-- quando o imediato é impar
+			if (sinal32bits(31) = '1') then
+				aux2 <= not(sinal32bits);
+				aux3 <= std_logic_vector(unsigned(aux2)+ 1);
+				out32bits <= std_logic_vector(unsigned(aux3)- unsigned(aux2));
+			else
+				out32bits <= std_logic_vector(unsigned(sinal32bits)+ 1);
+			end if;
+		else											-- quando for par
+			if (sinal32bits(31) = '1') then 		-- se o salto for para frente
 			aux2 <= not(sinal32bits);
 			b32 <= to_bitvector(aux2);
 			out32bits  <= to_stdlogicvector(b32 sll 1);
-		else					-- se o salto for para tras
-			b32 <= to_bitvector(sinal32bits);
-			out32bits  <= to_stdlogicvector(b32 sll 1);
+			else					-- se o salto for para tras
+				b32 <= to_bitvector(sinal32bits);
+				out32bits  <= to_stdlogicvector(b32 sll 1);
+			end if;
 		end if;
 	end process;	
 	-- Acesso ao banco de registradores:

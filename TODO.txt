@@ -16,5 +16,7 @@ Além disso, deve implementar as instruções especificas, como:
 		ori	[ok]		-- instrução tipo I
 		sll 	[ok]		-- instrução tipo R
 		srl 	[ok]		-- instrução tipo R
-		jal 	[todo]
-		jr	[todo]
+		jal 	[ok]		-- instrução tipo J
+		jr	[ok]		-- instrução tipo R
+
+O arquivo teste.mif e teste.asm(assembly) testa todas as instruções acima
