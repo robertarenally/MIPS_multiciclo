@@ -24,7 +24,7 @@ end cntrMIPS;
 
 architecture arch_cntrMIPS of cntrMIPS is
 	
-	type estado is (Fetch0,Fetch1,Decode,ExecR,ExecAddi0,ExecAddi1,fimR,ExecOri0,ExecOri1,fimOri,fimAddi,ExecLw0,ExecLw1,ExecSw0,ExecSw1,fimLw0,fimLw1,fimSw0,fimSw1,ExecBeq0,ExecBeq1);
+	type estado is (Fetch0,Fetch1,Decode,ExecR,ExecAddi0,ExecAddi1,fimR,ExecOri0,ExecOri1,fimOri,fimAddi,ExecLw0,ExecLw1,ExecSw0,ExecSw1,fimLw0,fimLw1,fimSw0,fimSw1,ExecBeq0,ExecBeq1,ExecJal0,ExecJal1);
 	signal EP : estado;		-- estado presente
 	signal PE : estado;		-- proximo estado
 	signal contador : std_logic_vector(3 downto 0) := "0000";
@@ -95,6 +95,8 @@ begin
 					PE <= ExecLw0;
 				elsif (Op = "101011") then 	-- sw
 					PE <= ExecSw0;
+				elsif (Op = "000011") then 	-- jal
+					PE <= ExecJal0;
 				elsif (Op = "000100" or Op = "000101") then    -- beq ou bne
 					Pe <= ExecBeq0;
 				end if;
@@ -367,6 +369,36 @@ begin
 				EscreveMem 		<= '0';
 				EscreveIR 		<= '0';
 				state	 <= "10001";
+				PE <= Fetch0;
+			when ExecJal0 =>					-- Ececução da instrução jal
+				OpALU         	<= "11";
+				OrigBALU			<= "00";
+				OrigPC			<= "10";
+				OrigAALU			<= '0';
+				EscreveReg 		<= '1';
+				RegDst 			<= '0'; 
+				MemparaReg 		<= "00";
+				EscrevePC 		<= '1'; 
+				EscrevePCCond 	<= '0';
+				IouD 				<= '0'; 
+				EscreveMem 		<= '0';
+				EscreveIR 		<= '0';
+				state	 <= "11000";
+				PE <= ExecJal1;
+			when ExecJal1 =>					-- Ececução da instrução jal
+				OpALU         	<= "11";
+				OrigBALU			<= "00";
+				OrigPC			<= "00";
+				OrigAALU			<= '0';
+				EscreveReg 		<= '0';
+				RegDst 			<= '0'; 
+				MemparaReg 		<= "11";
+				EscrevePC 		<= '1'; 
+				EscrevePCCond 	<= '0';
+				IouD 				<= '0'; 
+				EscreveMem 		<= '0';
+				EscreveIR 		<= '0';
+				state	 <= "11001";
 				PE <= Fetch0;
 			when others =>
 				PE 				<= Fetch0;

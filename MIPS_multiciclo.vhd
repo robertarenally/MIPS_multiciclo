@@ -124,6 +124,10 @@ begin
 				address <= out32bits(7 downto 0);
 			elsif (Opcode = "000101" and zero = '0') then			-- bne
 				address <= out32bits(7 downto 0);
+			elsif (Opcode = "000011" and state = "11001") then 	-- jal
+				address <= OutPC1(7 downto 0);
+			elsif (funct = "001000") then									-- jr
+				address <= addressReturn;
 			else
 				address <= out2(7 downto 0);
 			end if;
@@ -156,6 +160,8 @@ begin
 				operacao <= "1100";
 			elsif(funct = "100110")then 		-- xor
 				operacao <= "1001";
+			elsif(funct = "001000")then 		-- jr
+				operacao <= "0010";
 			end if;
 		end if;
 	end process;
@@ -172,6 +178,11 @@ begin
 				elsif (state = "10001") then
 					outPC1 <= inPC1;
 				end if;
+			elsif (state = "11000") then		-- para o caso de jal
+					outPC1 <= inPC1;
+			elsif (funct = "001000") then
+				outPC1(7 downto 0) <= addressReturn;
+				outPC1(31 downto 8) <= "000000000000000000000000";
 			end if;
 		else
 				sRDM <= saidaRAM;
@@ -191,6 +202,9 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 	-- obtendo os campos da Instrucao tipo J = j
 	offset <= instrucao (25 downto 0);
 	rst <= '1';
+	out28bits(27 downto 2) <= offset;
+	out28bits(1 downto 0) <= "00";
+	addressJump <=(outPC1(31 downto 28) & out28bits);
 	-- E necessario para decidir qual vai ser o endereco do operando 1
 	-- para as operacoes sll e srl
 	process(funct,clk) begin
@@ -211,7 +225,11 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 	process (RegDst,rt,rd,Opcode,funct)
 	begin
 		if (RegDst = '0') then
-			wadd <= rt;
+			if (Opcode = "000011" and state = "11000") then 			-- para o caso de jal
+				wadd <= "11111";
+			else
+				wadd <= rt;
+			end if;
 		else
 			wadd <= rd;
 		end if;
@@ -220,7 +238,12 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 	process (MemparaReg,sALU,sRDM)
 	begin
 		if (MemparaReg = "00") then
-			wdata <= sALU;
+			if (Opcode = "000011" and state = "11000") then 			-- para o caso de jal
+				wdata <= outPC1;
+				addressReturn <= outPC1(7 downto 0);
+			else
+				wdata <= sALU;
+			end if;
 		elsif (MemparaReg = "01") then
 			wdata <= sRDM;
 		end if;
@@ -260,7 +283,12 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 	-- Escolhendo 0 operando 1:
 	process(OrigAALU,funct,opA,clk) begin
 		if (OrigAALU = '0') then
-			operando1 <= outPC1;
+			if (Opcode = "000011") then
+				operando1(31 downto 1)<= outPC1(31 downto 1);
+				operando1(0) <= '0';
+			else
+				operando1 <= outPC1;
+			end if;
 		else
 			operando1 <= r1;
 		end if;
@@ -311,7 +339,8 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 		elsif (OrigPC = "01") then
 			inPC1 <= sALU;
 		elsif(OrigPC = "10") then
-			inPC1 <= addressJump;
+			inPC1(25 downto 0) <= offset;
+			inPC1(31 downto 26) <= "000000";
 		end if;
 	end process;
 	memoria: RAM port map (address,clk,r2,EscreveMem,saidaRAM);
