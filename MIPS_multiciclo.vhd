@@ -126,6 +126,8 @@ begin
 				address <= out32bits(7 downto 0);
 			elsif (Opcode = "000011" and state = "11001") then 	-- jal
 				address <= OutPC1(7 downto 0);
+			elsif (Opcode = "000010" and state = "11001") then 	-- j
+				address <= OutPC1(7 downto 0);
 			elsif (funct = "001000") then									-- jr
 				address <= addressReturn;
 			else
@@ -178,7 +180,7 @@ begin
 				elsif (state = "10001") then
 					outPC1 <= inPC1;
 				end if;
-			elsif (state = "11000") then		-- para o caso de jal
+			elsif (state = "11000") then		-- para o caso de jal ou j
 					outPC1 <= inPC1;
 			elsif (funct = "001000") then
 				outPC1(7 downto 0) <= addressReturn;
@@ -297,7 +299,7 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 	-- Escolhendo 0 operando 1:
 	process(OrigAALU,funct,opA,clk) begin
 		if (OrigAALU = '0') then
-			if (Opcode = "000011") then
+			if (Opcode = "000011" or Opcode = "000010") then
 				operando1(31 downto 1)<= outPC1(31 downto 1);
 				operando1(0) <= '0';
 			else
