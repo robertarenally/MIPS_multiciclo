@@ -120,8 +120,8 @@ begin
 		if (IouD = '0') then
 			if (Opcode = "101011" and state = "01111") then 			-- sw
 				address <= OutPC1(7 downto 0);
-			elsif (state = "01100" and Opcode = "100011") then			-- lw
-				address <= inPC1(7 downto 0);
+			elsif (state = "01011" and Opcode = "100011") then			-- lw
+				address <= OutPC1(7 downto 0);
 			elsif (Opcode = "000100" and state = "00001") then			-- para a operação beq
 				if (operando1 = operando2) then
 					address <= out32bits(7 downto 0);
@@ -355,7 +355,7 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 	process (OrigPC,Z,sALU,sinal32bits,Opcode,clk)
 	begin
 		if (OrigPC = "00") then
-			if (Opcode = "000100" or Opcode = "000101" or Opcode = "101011") then   -- para o caso de beq ou bne
+			if (Opcode = "101011") then   -- para o caso de beq ou bne
 				inPC1(31 downto 1) <= Z(31 downto 1);
 				inPC1(0) <= '0';
 			else
