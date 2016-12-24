@@ -355,9 +355,14 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 	process (OrigPC,Z,sALU,sinal32bits,Opcode,clk)
 	begin
 		if (OrigPC = "00") then
-			if (Opcode = "101011") then   -- para o caso de beq ou bne
+			if (Opcode = "101011") then   
 				inPC1(31 downto 1) <= Z(31 downto 1);
 				inPC1(0) <= '0';
+			elsif(Opcode = "000101") then 		-- bne
+				if (operando1 = operando2 and state = "10001") then		-- falha na condição do salto
+					inPC1(31 downto 1) <= Z(31 downto 1);
+					inPC1(0) <= '0';
+				end if;
 			else
 				inPC1 <= Z;
 			end if;
