@@ -112,7 +112,13 @@ begin
 	begin
 	-- Seleciona o endereco de leitura da memoria
 		if (IouD = '0') then
-			out2 <= OutPC1;
+			if (Opcode = "101011") then 			-- sw
+				out2 <= OutPC1;
+			elsif (state = "01011") then			-- lw
+				out2 <= outPC1;
+			else
+				out2 <= OutPC1;
+			end if;
 		else
 			out2 <= sALU;
 		end if;
@@ -120,8 +126,8 @@ begin
 		if (IouD = '0') then
 			if (Opcode = "101011" and state = "01111") then 			-- sw
 				address <= OutPC1(7 downto 0);
-			elsif (state = "01011" and Opcode = "100011") then			-- lw
-				address <= OutPC1(7 downto 0);
+			elsif (state = "01001" and state = "00000") then			-- lw
+				address <= outPC1(7 downto 0);
 			elsif (Opcode = "000100" and state = "00001") then			-- para a operação beq
 				if (operando1 = operando2) then
 					address <= out32bits(7 downto 0);
@@ -130,19 +136,17 @@ begin
 				if (operando1 /= operando2) then
 					address <= out32bits(7 downto 0);
 				end if;
-			elsif (Opcode = "000011" and state = "11001") then 	-- jal
-				address <= OutPC1(7 downto 0);
-			elsif (Opcode = "000010" and state = "11001") then 	-- j
-				address <= OutPC1(7 downto 0);
+			elsif (Opcode = "000011") then 	-- jal
+				address <= offset(7 downto 0);
+			elsif (Opcode = "000010") then 	-- j
+				address <= offset(7 downto 0);
 			elsif (offset = "11111000000000000000001000") then									-- jr
 				address <= addressReturn;
 			else
 				address <= out2(7 downto 0);
 			end if;
  		elsif (IouD = '1') then
-			if (state = "01010" or state = "01110") then
-				address <= ('1' & sALU(6 downto 0));
-			end if;
+				address <= ('1' & sALU(8 downto 2));
  		end if;
 		-- controle da ALU
 		if (OpALU = "00") then 		-- add
@@ -173,12 +177,14 @@ begin
 			elsif(funct = "001000")then 		-- jr
 				operacao <= "0010";
 			end if;
+		elsif(state = "00001") then
+			operacao <= "1111";
 		end if;
 	end process;
 	process(escreveRI,clk,saidaRAM,EscrevePC,EscrevePCCond,state)
 	begin
 		if (falling_edge(clk)) then
-			if (EscreveRI = '1' and address < "10000000") then
+			if (EscreveRI = '1') then
 				instrucao <= saidaRAM;
 			end if;
 			cntrPC <= ((zero and EscrevePCCond) or (EscrevePC));
@@ -201,8 +207,12 @@ begin
 			elsif (offset = "11111000000000000000001000") then
 				outPC1(7 downto 0) <= addressReturn;
 				outPC1(31 downto 8) <= "000000000000000000000000";
-			elsif (state = "10001" and Opcode = "000100") then
+			elsif (state = "10001" and Opcode = "000100") then		-- beq
 				if(operando1 = operando2) then
+					outPC1 <= inPC1;
+				end if;
+			elsif (state = "10001" and Opcode = "000101") then     -- bne
+				if(operando1 /= operando2) then
 					outPC1 <= inPC1;
 				end if;
 			elsif (state = "01100" and Opcode = "100011") then
@@ -210,6 +220,9 @@ begin
 			end if;
 		else
 				sRDM <= saidaRAM;
+				if (instrucao = X"00000000") then
+					instrucao <= sRDM;
+				end if;
 		end if;
 	end process;
 	saidaRI <= instrucao;
@@ -275,7 +288,7 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 	process(Opcode,clk) begin
 	if (Opcode = "000011") then 			-- para o caso de jal
 			if (state = "00001") then
-				addressReturn <= inPC1(7 downto 0);
+				addressReturn <= std_logic_vector(unsigned(inPC1(7 downto 0)) + 1);
 			end if;
 	end if;
 	end process;
@@ -300,14 +313,14 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 		end if;
 	end process;
 	process(sinal32bits,clk) begin
-		out32bits <= std_logic_vector(unsigned(sinal32bits) + unsigned(aux4));
+		out32bits <= std_logic_vector(unsigned(sinal32bits) + unsigned(outPC1));
 	end process;	
 	-- Acesso ao banco de registradores:
  	--acessa: BREG port map (clk,EscreveReg,rs,rt,wadd,wdata,r1,r2);
 	-- Escolhendo 0 operando 1:
 	process(OrigAALU,funct,opA,clk) begin
 		if (OrigAALU = '0') then
-			if (Opcode = "000011" or Opcode = "000010" or Opcode = "000100") then
+			if (Opcode = "000011" or Opcode = "000010" or Opcode = "000100" or Opcode = "000101") then
 				operando1(31 downto 1)<= outPC1(31 downto 1);
 				operando1(0) <= '0';
 			else
@@ -355,13 +368,9 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 	process (OrigPC,Z,sALU,sinal32bits,Opcode,clk)
 	begin
 		if (OrigPC = "00") then
-			if (Opcode = "101011") then   
-				inPC1(31 downto 1) <= Z(31 downto 1);
-				inPC1(0) <= '0';
-			elsif(Opcode = "000101") then 		-- bne
+			if(Opcode = "000101") then 		-- bne
 				if (operando1 = operando2 and state = "10001") then		-- falha na condição do salto
-					inPC1(31 downto 1) <= Z(31 downto 1);
-					inPC1(0) <= '0';
+					inPC1 <= std_logic_vector(unsigned(Z) - 1);
 				end if;
 			else
 				inPC1 <= Z;
@@ -370,12 +379,12 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 			inPC1 <= sALU;
 		elsif(OrigPC = "10") then 		-- salto
 		 if(Opcode = "000100") then	-- beq
-			if(operando1 = operando2) then
+			if(operando1 = operando2 and state /= "00000") then
 					inPC1 <= out32bits;
 			end if;
 		 elsif (Opcode = "000101") then	--bne
-			if(operando1 /= operando2) then
-				inPC1 <= out32bits;
+			if(operando1 /= operando2 and state /= "00000") then
+					inPC1 <= out32bits;
 			end if;
 		 else
 			inPC1(25 downto 0) <= offset;

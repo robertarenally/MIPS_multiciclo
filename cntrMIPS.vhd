@@ -72,7 +72,7 @@ begin
 				state <= "00000";
 				PE 				<=	Decode;
 			when Decode => 	 -- Decodificacao e leitura dos resgistradores rs e rt
-				OpALU 			<= "00";
+				OpALU 			<= "11";
 				OrigBALU 		<= "00";
 				OrigPC 			<= "11";
 				OrigAALU 		<= '1';
@@ -253,7 +253,7 @@ begin
 			when fimLw0 =>						-- fim da execução da instrução load word 
 				OpALU 			<= "00";
 				OrigBALU 		<= "01";
-				OrigPC 			<= "00";
+				OrigPC 			<= "11";
 				OrigAALU 		<= '0'; 
 				EscreveReg 		<= '0';
 				RegDst 			<= '0'; 
@@ -268,7 +268,7 @@ begin
 			when fimLw1 =>						-- fim da execução da instrução load word 
 				OpALU 			<= "00";
 				OrigBALU 		<= "01";
-				OrigPC 			<= "00";
+				OrigPC 			<= "11";
 				OrigAALU 		<= '0'; 
 				EscreveReg 		<= '1';
 				RegDst 			<= '0'; 
@@ -328,7 +328,7 @@ begin
 			when fimSw1 =>						-- fim da execução da instrução store word 
 				OpALU 			<= "11";
 				OrigBALU 		<= "00";
-				OrigPC 			<= "11";
+				OrigPC 			<= "00";
 				OrigAALU 		<= '0'; 
 				EscreveReg 		<= '0';
 				RegDst 			<= '0'; 

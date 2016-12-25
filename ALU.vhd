@@ -107,7 +107,6 @@ begin
 				a32 <= to_stdlogicvector(b32 sra d);
 				vai <= '0';
 				ovfl<= '0';
-			when  "1111" => a32 <= A;
 			when others  => a32 <= (others => '0');     
 		end case;
 		-- Atribuindo o resultado da operação na saída:
