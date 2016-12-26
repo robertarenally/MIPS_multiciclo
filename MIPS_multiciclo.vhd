@@ -114,8 +114,10 @@ begin
 		if (IouD = '0') then
 			if (Opcode = "101011") then 			-- sw
 				out2 <= OutPC1;
-			elsif (state = "01011") then			-- lw
+			elsif (Opcode = "100011") then			-- lw
 				out2 <= outPC1;
+			elsif (state = "00011" and funct =  "100010" and Opcode = "000000") then 	-- evitando o atraso da instrução sub
+				out2 <= inPC1;
 			else
 				out2 <= OutPC1;
 			end if;
@@ -215,6 +217,8 @@ begin
 				if(operando1 /= operando2) then
 					outPC1 <= inPC1;
 				end if;
+			elsif (state = "00011" and funct =  "100010" and Opcode = "000000") then 	-- evitando o atraso da instrução sub
+				outPC1 <= inPC1;
 			elsif (state = "01100" and Opcode = "100011") then
 				outPC1 <= inPC1;
 			end if;
@@ -370,7 +374,7 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 		if (OrigPC = "00") then
 			if(Opcode = "000101") then 		-- bne
 				if (operando1 = operando2 and state = "10001") then		-- falha na condição do salto
-					inPC1 <= std_logic_vector(unsigned(Z) - 1);
+					inPC1 <= Z;
 				end if;
 			else
 				inPC1 <= Z;
