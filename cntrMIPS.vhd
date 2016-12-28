@@ -18,7 +18,7 @@ entity cntrMIPS is
 					EscrevePCCond	: out std_logic;
 					IouD				: out std_logic;
 					EscreveMem		: out std_logic;
-					EscreveIR		: out std_logic;
+					EscreveRI		: out std_logic;
 					state				: out std_logic_vector(4 downto 0));
 end cntrMIPS;
 
@@ -32,7 +32,7 @@ architecture arch_cntrMIPS of cntrMIPS is
 begin
 
 	sincrono : process (clk, Op) begin
-		if (reset = '0') then  --força a começar o controle a comecar do estado ST0;
+		if (reset = '0') then  --força a começar o controle a comecar do estado Fetch0;
 			EP <= Fetch0;
 		elsif (rising_edge(clk)) then
 			EP <= PE;
@@ -53,13 +53,13 @@ begin
 				EscrevePCCond 	<= '0';
 				IouD 				<= '0'; 
 				EscreveMem 		<= '0';
-				EscreveIR 		<= '0';
+				EscreveRI 		<= '0';
 				state <= "00000";
 				PE 				<=	Fetch1;
 			when Fetch1 =>			-- Busca: da Instrucao
 				OpALU 			<= "00";
 				OrigBALU 		<= "01";
-				OrigPC 			<= "00";
+				OrigPC 			<= "11";
 				OrigAALU 		<= '0'; 
 				EscreveReg 		<= '0';
 				RegDst 			<= '0'; 
@@ -68,7 +68,7 @@ begin
 				EscrevePCCond 	<= '0';
 				IouD 				<= '0'; 
 				EscreveMem 		<= '0';
-				EscreveIR 		<= '1';
+				EscreveRI 		<= '1';
 				state <= "00000";
 				PE 				<=	Decode;
 			when Decode => 	 -- Decodificacao e leitura dos resgistradores rs e rt
@@ -83,7 +83,7 @@ begin
 				EscrevePCCond	<= '0';
 				IouD 				<= '0';
 				EscreveMem 		<= '0';
-				EscreveIR 		<= '0';
+				EscreveRI 		<= '0';
 				state <= "00001";
 				if (Op = "000000") then       -- Instrução tipo R
 					PE <=	ExecR;
@@ -112,7 +112,7 @@ begin
 				EscrevePCCond	<= '0';
 				IouD 				<= '0';
 				EscreveMem 		<= '0';
-				EscreveIR 		<= '0';
+				EscreveRI 		<= '0';
 				state <= "00010";
 				PE 				<=	FimR;
 			when FimR =>							-- Fim da execução da instrução tipo R
@@ -127,7 +127,7 @@ begin
 				EscrevePCCond	<= '0';
 				IouD 				<= '0';
 				EscreveMem 		<= '0';
-				EscreveIR 		<= '0';
+				EscreveRI 		<= '0';
 				state <= "00011";
 				PE 				<=	Fetch0;
 			when ExecAddi0 =>							-- Execução da instrução: addi
@@ -142,7 +142,7 @@ begin
 				EscrevePCCond	<= '0';
 				IouD 				<= '0';
 				EscreveMem 		<= '0';
-				EscreveIR 		<= '0';
+				EscreveRI 		<= '0';
 				state <= "00100";
 				PE 				<=	ExecAddi1;
 			when ExecAddi1 =>							-- Execução da instrução: addi
@@ -157,7 +157,7 @@ begin
 				EscrevePCCond	<= '0';
 				IouD 				<= '0';
 				EscreveMem 		<= '0';
-				EscreveIR 		<= '0';
+				EscreveRI 		<= '0';
 				state <= "00100";
 				PE 				<=	FimAddi;
 			when FimAddi =>							-- Fim da execução da instrução: addi
@@ -172,7 +172,7 @@ begin
 				EscrevePCCond	<= '0';
 				IouD 				<= '0';
 				EscreveMem 		<= '0';
-				EscreveIR 		<= '0';
+				EscreveRI 		<= '0';
 				state <= "00101";
 				PE 				<=	Fetch0;
 			when ExecOri0 =>						-- execução da instrução: ori
@@ -187,7 +187,7 @@ begin
 				EscrevePCCond	<= '0';
 				IouD 				<= '0';
 				EscreveMem 		<= '0';
-				EscreveIR 		<= '0';
+				EscreveRI 		<= '0';
 				state <= "00110";
 				PE 				<=	ExecOri1;
 			when ExecOri1 =>						-- execução da instrução: ori
@@ -202,7 +202,7 @@ begin
 				EscrevePCCond	<= '0';
 				IouD 				<= '0';
 				EscreveMem 		<= '0';
-				EscreveIR 		<= '0';
+				EscreveRI 		<= '0';
 				state <= "00111";
 				PE 				<=	Fetch0;
 			when fimOri =>								-- conclusao da instrucao ori
@@ -217,7 +217,7 @@ begin
 				EscrevePCCond	<= '0';
 				IouD 				<= '0';
 				EscreveMem 		<= '0';
-				EscreveIR 		<= '0';
+				EscreveRI 		<= '0';
 				state	 <= "01000";
 				PE <= Fetch0;
 			when ExecLw0 =>						-- execução da instrução load word 
@@ -232,7 +232,7 @@ begin
 				EscrevePCCond	<= '0';
 				IouD 				<= '1';
 				EscreveMem 		<= '0';
-				EscreveIR 		<= '0';
+				EscreveRI 		<= '0';
 				state	 <= "01001";
 				PE <= ExecLw1;
 			when ExecLw1 =>						-- execução da instrução load word 
@@ -247,7 +247,7 @@ begin
 				EscrevePCCond	<= '0';
 				IouD 				<= '1';
 				EscreveMem 		<= '0';
-				EscreveIR 		<= '0';
+				EscreveRI 		<= '0';
 				state	 <= "01010";
 				PE <= fimLw0;
 			when fimLw0 =>						-- fim da execução da instrução load word 
@@ -262,7 +262,7 @@ begin
 				EscrevePCCond 	<= '0';
 				IouD 				<= '1'; 
 				EscreveMem 		<= '0';
-				EscreveIR 		<= '0';
+				EscreveRI 		<= '0';
 				state	 <= "01011";
 				PE <= fimLw1;
 			when fimLw1 =>						-- fim da execução da instrução load word 
@@ -277,7 +277,7 @@ begin
 				EscrevePCCond 	<= '0';
 				IouD 				<= '0'; 
 				EscreveMem 		<= '0';
-				EscreveIR 		<= '0';
+				EscreveRI 		<= '0';
 				state	 <= "01100";
 				PE <= Fetch0;
 			when ExecSw0 =>						-- execução da instrução store word 
@@ -292,7 +292,7 @@ begin
 				EscrevePCCond 	<= '0';
 				IouD 				<= '1'; 
 				EscreveMem 		<= '0';
-				EscreveIR 		<= '0';
+				EscreveRI 		<= '0';
 				state	 <= "01101";
 				PE <= ExecSw1;
 			when ExecSw1 =>						-- execução da instrução store word 
@@ -307,7 +307,7 @@ begin
 				EscrevePCCond 	<= '0';
 				IouD 				<= '1'; 
 				EscreveMem 		<= '1';
-				EscreveIR 		<= '0';
+				EscreveRI 		<= '0';
 				state	 <= "01110";
 				PE <= fimSw0;
 			when fimSw0 =>						-- fim da execução da instrução store word 
@@ -322,7 +322,7 @@ begin
 				EscrevePCCond 	<= '0';
 				IouD 				<= '0'; 
 				EscreveMem 		<= '0';
-				EscreveIR 		<= '0';
+				EscreveRI 		<= '0';
 				state	 <= "01111";
 				PE <= fimSw1;
 			when fimSw1 =>						-- fim da execução da instrução store word 
@@ -337,7 +337,7 @@ begin
 				EscrevePCCond 	<= '0';
 				IouD 				<= '0'; 
 				EscreveMem 		<= '0';
-				EscreveIR 		<= '0';
+				EscreveRI 		<= '0';
 				state	 <= "10000";
 				PE <= Fetch0;
 			when ExecBeq0 =>					-- Execução da instrução beq
@@ -352,7 +352,7 @@ begin
 				EscrevePCCond 	<= '1';
 				IouD 				<= '0'; 
 				EscreveMem 		<= '0';
-				EscreveIR 		<= '0';
+				EscreveRI 		<= '0';
 				state	 <= "10001";
 				PE <= ExecBeq1;
 			when ExecBeq1 =>					-- Execução da instrução beq
@@ -367,7 +367,7 @@ begin
 				EscrevePCCond 	<= '1';
 				IouD 				<= '0'; 
 				EscreveMem 		<= '0';
-				EscreveIR 		<= '0';
+				EscreveRI 		<= '0';
 				state	 <= "10001";
 				PE <= Fetch0;
 			when ExecJal0 =>					-- Ececução da instrução jal
@@ -382,7 +382,7 @@ begin
 				EscrevePCCond 	<= '0';
 				IouD 				<= '0'; 
 				EscreveMem 		<= '0';
-				EscreveIR 		<= '0';
+				EscreveRI 		<= '0';
 				state	 <= "11000";
 				PE <= ExecJal1;
 			when ExecJal1 =>					-- Ececução da instrução jal
@@ -397,7 +397,7 @@ begin
 				EscrevePCCond 	<= '0';
 				IouD 				<= '0'; 
 				EscreveMem 		<= '0';
-				EscreveIR 		<= '0';
+				EscreveRI 		<= '0';
 				state	 <= "11001";
 				PE <= Fetch0;
 			when others =>

@@ -12,6 +12,7 @@ Implementação do microprocessador MIPS multiciclo de 32 bits em vhdl, que impl
 		bne 	[ok]            -- instrução tipo I
 		sw 	[ok]		-- instrução tipo I
 		lw 	[ok]		-- instrução tipo I
+		j	[ok]		-- instrução tipo J
 Além disso, deve implementar as instruções especificas, como:
 		ori	[ok]		-- instrução tipo I
 		sll 	[ok]		-- instrução tipo R

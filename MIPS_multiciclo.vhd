@@ -68,7 +68,7 @@ architecture archMIPS_multiciclo of MIPS_multiciclo is
 					EscrevePCCond	: out std_logic;
 					IouD				: out std_logic;
 					EscreveMem		: out std_logic;
-					EscreveIR		: out std_logic;
+					EscreveRI		: out std_logic;
 					state				: out std_logic_vector(4 downto 0));
 	end component;
 	
@@ -85,7 +85,7 @@ architecture archMIPS_multiciclo of MIPS_multiciclo is
 	-- sinais da ALU
  	signal vai, ovfl, zero : std_logic;
  	signal Z, sALU , operando1, operando2, opA, opB : std_logic_vector(31 downto 0):= X"00000000";
-	signal aux : std_logic_vector(31 downto 0):= X"00000001";
+	signal aux : std_logic_vector(31 downto 0):= X"00000004";
 	
 	-- Sinal de saida do controle da ALU
  	signal operacao : std_logic_vector (3 downto 0);
@@ -101,10 +101,10 @@ architecture archMIPS_multiciclo of MIPS_multiciclo is
  	-- sinais usados no deslocamento do immediato:
  	signal sinal32bits,out32bits,aux2,aux3,saidaRAM,sRDM,aux4 : std_logic_vector(31 downto 0);
  	-- Sinal que armazena o endereco do jump
- 	signal addressJump, out2 : std_logic_vector(31 downto 0);
+ 	signal addressJump,addressReturn,out2 : std_logic_vector(31 downto 0);
 	signal out28bits : std_logic_vector(27 downto 0);
 	-- Sinal de endereco da memoria
-	signal address, addressReturn, addressJal : std_logic_vector(7 downto 0) := "00000000";
+	signal address : std_logic_vector(7 downto 0) := "00000000";
 	signal b32 : bit_vector(31 downto 0);
 	
 begin
@@ -127,30 +127,30 @@ begin
 	-- Configura o endereco de acesso a memoria RAM
 		if (IouD = '0') then
 			if (Opcode = "101011" and state = "01111") then 			-- sw
-				address <= OutPC1(7 downto 0);
+				address <= OutPC1(9 downto 2);
 			elsif (state = "01001" and state = "00000") then			-- lw
-				address <= outPC1(7 downto 0);
+				address <= outPC1(9 downto 2);
 			elsif (Opcode = "000100" and state = "00001") then			-- para a operação beq
 				if (operando1 = operando2) then
-					address <= out32bits(7 downto 0);
+					address <= outPC1(9 downto 2);
 				end if;
 			elsif (Opcode = "000101" and state = "10001") then			-- bne
 				if (operando1 /= operando2) then
-					address <= out32bits(7 downto 0);
+					address <= outPC1(9 downto 2);
 				end if;
 			elsif (Opcode = "000011") then 	-- jal
-				address <= offset(7 downto 0);
+				address <= addressJump(9 downto 2);
 			elsif (Opcode = "000010") then 	-- j
-				address <= offset(7 downto 0);
+				address <= addressJump(9 downto 2);
 			elsif (offset = "11111000000000000000001000") then									-- jr
-				address <= addressReturn;
+				address <= addressReturn(9 downto 2);
 			else
-				address <= out2(7 downto 0);
+				address <= out2(9 downto 2);
 			end if;
  		elsif (IouD = '1') then
 				address <= ('1' & sALU(8 downto 2));
  		end if;
-		-- controle da ALU
+		----------------------------------------- controle da ALU
 		if (OpALU = "00") then 		-- add
 			operacao <= "0010";
 		elsif(OpALU = "01") then   -- ori
@@ -179,16 +179,18 @@ begin
 			elsif(funct = "001000")then 		-- jr
 				operacao <= "0010";
 			end if;
-		elsif(state = "00001") then
+		elsif(state = "00001" or state = "10001" ) then
 			operacao <= "1111";
 		end if;
 	end process;
 	process(escreveRI,clk,saidaRAM,EscrevePC,EscrevePCCond,state)
 	begin
+		-- Escreve no Registrador de Instruções
 		if (falling_edge(clk)) then
 			if (EscreveRI = '1') then
 				instrucao <= saidaRAM;
 			end if;
+			-- Escreve no registrador PC
 			cntrPC <= ((zero and EscrevePCCond) or (EscrevePC));
 			if (cntrPC = '1') then
 				if (state = "00000") then
@@ -207,8 +209,7 @@ begin
 			elsif (state = "11000") then		-- para o caso de jal ou j
 					outPC1 <= inPC1;
 			elsif (offset = "11111000000000000000001000") then
-				outPC1(7 downto 0) <= addressReturn;
-				outPC1(31 downto 8) <= "000000000000000000000000";
+				outPC1 <= addressReturn;
 			elsif (state = "10001" and Opcode = "000100") then		-- beq
 				if(operando1 = operando2) then
 					outPC1 <= inPC1;
@@ -223,7 +224,12 @@ begin
 				outPC1 <= inPC1;
 			end if;
 		else
+		-- Escreve no Registrador de Dados da Memória
 				sRDM <= saidaRAM;
+				-- Faz um adiantamento de dados, na primeira instrução lida,
+				-- pois o RI é carregado com a instrução X"00000000" e excutada como se fosse uma instrução do tipo R,
+				-- e classificada como a instrução shift left logical, pois o opcode e o campo funct ambos são 0.
+				-- Então para que isso não aconteça, é feito esse adiantamento de dados.
 				if (instrucao = X"00000000") then
 					instrucao <= sRDM;
 				end if;
@@ -234,6 +240,7 @@ begin
 	saidaPC <= outPC1;
 	-- Decodificacao:	
  	Opcode <= instrucao(31 downto 26);
+	-- É realizado o controle do MIPS
 controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,EscreveReg,RegDst,MemparaReg,EscrevePC,EscrevePCCond,IouD,EscreveMem,EscreveRI,state);
 	-- Acesso ao banco de registradores:
  	acessa: BREG port map (clk,EscreveReg,rs,rt,wadd,wdata,r1,r2);
@@ -248,8 +255,8 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 	out28bits(27 downto 2) <= offset;
 	out28bits(1 downto 0) <= "00";
 	addressJump <=(outPC1(31 downto 28) & out28bits);
-	-- E necessario para decidir qual vai ser o endereco do operando 1
-	-- para as operacoes sll e srl
+	-- Esse processo necessario para decidir qual vai ser o endereco do operando 1
+	-- para as operacoes sll, srl e ori
 	process(funct,clk,state) begin
 		if (Opcode = "000000" or Opcode = "001101")then
 			if (funct = "000000" or funct = "000010") then
@@ -285,14 +292,11 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 		elsif (MemparaReg = "01") then
 			wdata <= sRDM;
 		end if;
-		if (sRDM(31 downto 26) = "000100" or sRDM(31 downto 26) = "000101") then
-			aux4 <= outPC1;
-		end if;
 	end process;
 	process(Opcode,clk) begin
 	if (Opcode = "000011") then 			-- para o caso de jal
 			if (state = "00001") then
-				addressReturn <= std_logic_vector(unsigned(inPC1(7 downto 0)) + 1);
+				addressReturn <= inPC1;
 			end if;
 	end if;
 	end process;
@@ -316,20 +320,22 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 			end if;
 		end if;
 	end process;
+	-- para executar o salto, o sinal32bits é somado com o endereço armazenado no registrador PC:
 	process(sinal32bits,clk) begin
-		out32bits <= std_logic_vector(unsigned(sinal32bits) + unsigned(outPC1));
+		b32 <= to_bitvector(sinal32bits);
+		aux2 <= to_stdlogicvector(b32 sll 2); -- deslocar 2 bits para a esquerda é equivalente a multiplicar por 4
+		out32bits <= std_logic_vector(unsigned(aux2) + unsigned(outPC1));
 	end process;	
-	-- Acesso ao banco de registradores:
- 	--acessa: BREG port map (clk,EscreveReg,rs,rt,wadd,wdata,r1,r2);
-	-- Escolhendo 0 operando 1:
+	-- Escolhendo o operando 1:
 	process(OrigAALU,funct,opA,clk) begin
 		if (OrigAALU = '0') then
-			if (Opcode = "000011" or Opcode = "000010" or Opcode = "000100" or Opcode = "000101") then
-				operando1(31 downto 1)<= outPC1(31 downto 1);
-				operando1(0) <= '0';
-			else
+			-- para o caso das instruções jal, j, beq e bne para que não pule o
+			-- endereço de uma instrução
+			--if (Opcode = "000011" or Opcode = "000010" or Opcode = "000100" or Opcode = "000101") then 
+				--operando1<= std_logic_vector (unsigned(outPC1) - unsigned(aux));
+			--else
 				operando1 <= outPC1;
-			end if;
+			--end if;
 		else
 			operando1 <= r1;
 		end if;
@@ -359,8 +365,9 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 			end if;
 		end if;
 	end process;
-	-- operacao da ALU
+	-- É executada a operacao da ALU
 	ULA: ALU port map(operacao,operando1,operando2,Z,vai,ovfl,zero);
+	-- processo atribui o resultado da operação no registrado Saida da ALU
 	process(clk, Z)
 	begin
 		if (falling_edge(clk)) then
@@ -368,20 +375,15 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 		end if;
 	end process;
 	saidaALU <= sALU;
-	-- Esse mux vai decidir qual vai ser o endereco da proxima instrucao:
+	-- Esse mux vai decidir o que vai ser escrito no registrador PC:
 	process (OrigPC,Z,sALU,sinal32bits,Opcode,clk)
 	begin
 		if (OrigPC = "00") then
-			if(Opcode = "000101") then 		-- bne
-				if (operando1 = operando2 and state = "10001") then		-- falha na condição do salto
-					inPC1 <= Z;
-				end if;
-			else
-				inPC1 <= Z;
-			end if;
+			inPC1 <= Z;
 		elsif (OrigPC = "01") then
 			inPC1 <= sALU;
 		elsif(OrigPC = "10") then 		-- salto
+		
 		 if(Opcode = "000100") then	-- beq
 			if(operando1 = operando2 and state /= "00000") then
 					inPC1 <= out32bits;
@@ -391,10 +393,11 @@ controle : cntrMIPS port map(clk,rst,Opcode,OpALU,OrigBALU,OrigPC,OrigAALU,Escre
 					inPC1 <= out32bits;
 			end if;
 		 else
-			inPC1(25 downto 0) <= offset;
-			inPC1(31 downto 26) <= "000000";
+			inPC1<= addressJump;
 		 end if;
+		 
 		end if;
 	end process;
+	-- É realizada a leitira/escrita na memória RAM
 	memoria: RAM port map (address,clk,r2,EscreveMem,saidaRAM);
 end archMIPS_multiciclo;
